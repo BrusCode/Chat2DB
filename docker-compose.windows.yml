@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  chat2db:
+    image: chat2db/chat2db:latest
+    container_name: chat2db-windows
+    restart: unless-stopped
+    
+    # Portas
+    ports:
+      - "${CHAT2DB_PORT:-10824}:10824"
+    
+    # Volumes para persistência de dados
+    # Para Windows, use caminhos relativos ou volumes nomeados
+    volumes:
+      # Opção 1: Volume nomeado (recomendado para Windows)
+      - chat2db_data:/root/.chat2db
+      
+      # Opção 2: Caminho local do Windows (descomente se preferir)
+      # - C:/Users/${USERNAME}/chat2db-data:/root/.chat2db
+      
+      # Opção 3: Caminho relativo (descomente se preferir)
+      # - ./chat2db-data:/root/.chat2db
+    
+    # Variáveis de ambiente
+    environment:
+      # Configurações Java
+      - JAVA_OPTS=-Xmx${JAVA_MAX_MEMORY:-2g} -Xms${JAVA_MIN_MEMORY:-512m}
+      
+      # Configurações da aplicação
+      - TZ=${TIMEZONE:-America/Sao_Paulo}
+      
+      # Configurações opcionais de AI (ChatGPT)
+      # Descomente e configure se quiser usar recursos de IA
+      # - CHATGPT_API_KEY=${CHATGPT_API_KEY:-}
+      # - CHATGPT_API_HOST=${CHATGPT_API_HOST:-https://api.openai.com}
+    
+    # Healthcheck para monitoramento
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10824/api/system/get-version-a"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Limites de recursos (ajuste conforme necessário)
+    # No Windows, ajuste baseado nos recursos disponíveis no Docker Desktop
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    
+    # Configurações de rede
+    networks:
+      - chat2db_network
+    
+    # Política de logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Volumes nomeados para persistência
+volumes:
+  chat2db_data:
+    driver: local
+
+# Rede customizada
+networks:
+  chat2db_network:
+    driver: bridge
